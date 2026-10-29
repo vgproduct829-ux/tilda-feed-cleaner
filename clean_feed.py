@@ -1,21 +1,23 @@
-import urllib.request
+import subprocess
 import re
 
 SRC = "https://istore34.ru/tstore/yml/a9c0dadf06f66ec5739d3c829e0eb701.yml"
 DST = "feed.yml"
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Referer": "https://istore34.ru/"
-}
+# Используем системную утилиту curl. Она работает на уровне сети и обходит блокировки кодировок.
+try:
+    # Скачиваем через curl с заголовком User-Agent
+    result = subprocess.run(
+        ["curl", "-s", "-L", "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", SRC],
+        capture_output=True
+    )
+    raw_bytes = result.stdout
+except Exception as e:
+    print(f"Ошибка скачивания: {e}")
+    exit(1)
 
-req = urllib.request.Request(SRC, headers=headers)
-with urllib.request.urlopen(req, timeout=30) as resp:
-    raw_bytes = resp.read()
-
-# ФОКУС: Читаем байты как Windows-1251 (потому что Тильда отдает в ней, но пишет в заголовке UTF-8)
-# Игнорируем ошибки, чтобы скрипт не падал на спецсимволах
-text = raw_bytes.decode("windows-1251", errors="ignore")
+# Теперь у нас есть чистые байты. Читаем их как UTF-8 (так как Тильда отдает именно UTF-8)
+text = raw_bytes.decode("utf-8", errors="replace")
 
 # Чистим пробелы
 text = text.replace("#nbsp;", " ")
@@ -31,4 +33,4 @@ text = re.sub(r" {2,}", " ", text)
 with open(DST, "w", encoding="utf-8") as f:
     f.write(text)
 
-print("Готово! Файл перекодирован из Windows-1251 в UTF-8.")
+print("Готово! Файл скачан через curl и сохранен в чистом UTF-8.")
