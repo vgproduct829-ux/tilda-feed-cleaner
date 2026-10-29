@@ -13,18 +13,17 @@ req = urllib.request.Request(SRC, headers=headers)
 with urllib.request.urlopen(req, timeout=30) as resp:
     raw_bytes = resp.read()
 
-# 1. Читаем как UTF-8 (потому что Тильда отдает именно UTF-8)
-text = raw_bytes.decode("utf-8", errors="replace")
+# Мы жестко говорим: читай байты как Windows-1251, потому что Тильда для ботов отдает именно её.
+text = raw_bytes.decode("windows-1251")
 
-# 2. МАГИЯ: чиним кракозябры
-# Берем испорченный текст, переводим его в байты Windows-1251 и читаем как UTF-8
-try:
-    text = text.encode("windows-1251").decode("utf-8")
-except Exception:
-    # Если не получилось (вдруг там уже нормальный текст), оставляем как есть
-    pass
+# Проверка на всякий случай: если вдруг это все-таки был UTF-8 (и мы получили кракозябры)
+if "Ð" in text and "Ñ" in text:
+    try:
+        text = text.encode("windows-1251").decode("utf-8")
+    except Exception:
+        pass
 
-# 3. Чистим от неразрывных пробелов
+# Чистка
 text = text.replace("#nbsp;", " ")
 text = text.replace("&nbsp;", " ")
 text = text.replace("&#160;", " ")
@@ -32,8 +31,8 @@ text = text.replace("\u00A0", " ")
 text = text.replace("\xA0", " ")
 text = re.sub(r" {2,}", " ", text)
 
-# 4. Сохраняем
+# Сохраняем в нормальном UTF-8
 with open(DST, "w", encoding="utf-8") as f:
     f.write(text)
 
-print("Готово! Кракозябры уничтожены.")
+print("Готово! Теперь точно должно быть чисто.")
