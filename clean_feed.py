@@ -13,33 +13,21 @@ req = urllib.request.Request(SRC, headers=headers)
 with urllib.request.urlopen(req, timeout=30) as resp:
     raw_bytes = resp.read()
 
-# 1. Читаем как UTF-8. Если вдруг там реально Windows-1251, игнорируем ошибки.
-try:
-    text = raw_bytes.decode("utf-8")
-except UnicodeDecodeError:
-    text = raw_bytes.decode("windows-1251", errors="replace")
+# Читаем строго как UTF-8
+text = raw_bytes.decode("utf-8", errors="replace")
 
-# 2. ЛЕЧИМ КРАКОЗЯБРЫ
-# Если мы видим символы 'Ð' и 'Ñ', значит текст был неправильно перекодирован.
-# Мы берем эти символы, переводим их в байты (как будто это Windows-1251), и читаем как UTF-8.
-if "Ð" in text or "Ñ" in text:
-    try:
-        text = text.encode("windows-1251", errors="ignore").decode("utf-8", errors="ignore")
-    except Exception:
-        pass
-
-# 3. Чистим пробелы
+# Чистка неразрывных пробелов
 text = text.replace("#nbsp;", " ")
 text = text.replace("&nbsp;", " ")
 text = text.replace("&#160;", " ")
 text = text.replace("\u00A0", " ")
 text = text.replace("\xA0", " ")
 
-# Схлопываем двойные пробелы
+# Убираем двойные пробелы
 text = re.sub(r" {2,}", " ", text)
 
-# 4. Сохраняем
-with open(DST, "w", encoding="utf-8") as f:
+# Сохраняем файл с принудительной кодировкой UTF-8 (без BOM)
+with open(DST, "w", encoding="utf-8-sig") as f:
     f.write(text)
 
-print("Готово! Ошибка обойдена, текст вылечен.")
+print("Готово. Файл сохранен в чистом UTF-8.")
