@@ -13,10 +13,11 @@ req = urllib.request.Request(SRC, headers=headers)
 with urllib.request.urlopen(req, timeout=30) as resp:
     raw_bytes = resp.read()
 
-# Читаем строго как UTF-8
-text = raw_bytes.decode("utf-8", errors="replace")
+# ФОКУС: Читаем байты как Windows-1251 (потому что Тильда отдает в ней, но пишет в заголовке UTF-8)
+# Игнорируем ошибки, чтобы скрипт не падал на спецсимволах
+text = raw_bytes.decode("windows-1251", errors="ignore")
 
-# Чистка неразрывных пробелов
+# Чистим пробелы
 text = text.replace("#nbsp;", " ")
 text = text.replace("&nbsp;", " ")
 text = text.replace("&#160;", " ")
@@ -26,8 +27,8 @@ text = text.replace("\xA0", " ")
 # Убираем двойные пробелы
 text = re.sub(r" {2,}", " ", text)
 
-# Сохраняем файл с принудительной кодировкой UTF-8 (без BOM)
-with open(DST, "w", encoding="utf-8-sig") as f:
+# Сохраняем в нормальном UTF-8
+with open(DST, "w", encoding="utf-8") as f:
     f.write(text)
 
-print("Готово. Файл сохранен в чистом UTF-8.")
+print("Готово! Файл перекодирован из Windows-1251 в UTF-8.")
